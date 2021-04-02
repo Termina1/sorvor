@@ -104,7 +104,7 @@ func (serv *Sorvor) BuildIndex(pkg *pkgjson.PkgJSON) []string {
 				for _, file := range outfiles {
 					switch path.Ext(file) {
 					case ".js":
-						result += "<script src=\"" + file + "\"><script>"
+						result += "<script src=\"" + file + "\"></script>"
 					case ".css":
 						result += "<link rel=\"stylesheet\" href=\"" + file + "\">"
 					}
