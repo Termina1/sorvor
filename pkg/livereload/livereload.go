@@ -13,6 +13,7 @@
 package livereload
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -20,7 +21,37 @@ import (
 
 // JsSnippet is a minimal javascript client for browsers. Embed it in your index.html using a script tag:
 //		<script>{{ LiveReload.JsSnippet }}</script>
-const JsSnippet = `<script>const source = new EventSource('/livereload');const reload = () => location.reload(true);source.onmessage = (e) => { e.data === 'reload' ? reload() : console.error(e.data) };source.onerror = () => (source.onopen = reload);console.info('[sørvør] listening for file changes');</script>`
+const JsSnippet = `<script>
+	const esource = new EventSource('/livereload');
+	const reload = () => location.reload(true);
+
+	function updateFile(file) {
+		const result = file.match(/(\w+\.(\w+))$/);
+		const ext = result[2];
+		switch (ext) {
+			case "css":
+				const element = document.querySelector("[href*=\"" + result[1] + "\"]");
+				const url = new URL(element.href);
+				url.searchParams.append("v", Date.now());
+				element.href = url.toString();
+				break;
+			case "js":
+				reload();
+				break;
+			default:
+				break;
+		}
+	}
+
+	esource.onmessage = (e) => { 
+		const result = JSON.parse(e.data);
+		if (result.Files) {
+			result.Files.forEach(updateFile);
+		}
+	};
+	esource.onerror = () => (esource.onopen = reload);
+	console.info('[sørvør] listening for file changes');
+</script>`
 
 // LiveReload keeps track of connected browser clients and broadcasts messages to them
 type LiveReload struct {
@@ -59,9 +90,15 @@ func (livereload *LiveReload) Start() {
 	}()
 }
 
+type FileChange struct {
+	Action string
+	Files  []string
+}
+
 // Reload sends a reload signal to all connected browsers
-func (livereload *LiveReload) Reload() {
-	livereload.messages <- "reload"
+func (livereload *LiveReload) Reload(files []string) {
+	result, _ := json.Marshal(FileChange{Action: "reload", Files: files})
+	livereload.messages <- string(result)
 }
 
 func (livereload *LiveReload) Error(msg string) {

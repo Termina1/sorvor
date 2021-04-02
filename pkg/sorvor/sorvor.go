@@ -2,6 +2,8 @@
 package sorvor
 
 import (
+	"bytes"
+	"fmt"
 	"html/template"
 	"io/ioutil"
 	"net/http"
@@ -30,6 +32,8 @@ type Sorvor struct {
 	Serve        bool
 	Secure       bool
 }
+
+type BuildCache map[string]api.OutputFile
 
 // BuildEntry builds a given entrypoint using esbuild
 func (serv *Sorvor) BuildEntry(entry string) ([]string, api.BuildResult) {
@@ -75,7 +79,7 @@ func (serv *Sorvor) RunEntry(entry string) {
 
 // BuildIndex walks the index.html, collect all the entries from <script...></script> and <link .../> tags
 // it then runs it through esbuild and replaces the references in index.html with new paths
-func (serv *Sorvor) BuildIndex(pkg *pkgjson.PkgJSON) []string {
+func (serv *Sorvor) BuildIndex(pkg *pkgjson.PkgJSON, cache BuildCache) []string {
 
 	target := filepath.Join(serv.BuildOptions.Outdir, "index.html")
 
@@ -98,7 +102,10 @@ func (serv *Sorvor) BuildIndex(pkg *pkgjson.PkgJSON) []string {
 			} else {
 				entry = filepath.Join(filepath.Dir(serv.Entry), entry)
 			}
-			outfiles, _ := serv.BuildEntry(entry)
+			outfiles, buildResult := serv.BuildEntry(entry)
+			for _, file := range buildResult.OutputFiles {
+				cache[file.Path] = file
+			}
 			if withTag {
 				result := ""
 				for _, file := range outfiles {
@@ -147,6 +154,7 @@ func (serv *Sorvor) ServeIndex(pkg *pkgjson.PkgJSON) {
 
 	// start esbuild in watch mode
 	go func() {
+		var builtFiles BuildCache = make(BuildCache)
 		serv.BuildOptions.Watch = &api.WatchMode{
 			OnRebuild: func(result api.BuildResult) {
 				if len(result.Errors) > 0 {
@@ -155,12 +163,21 @@ func (serv *Sorvor) ServeIndex(pkg *pkgjson.PkgJSON) {
 						liveReload.Error("Build Error: " + err.Text + " @ " + err.Location.File)
 					}
 				} else {
+					var files []string = make([]string, 0)
+					for _, file := range result.OutputFiles {
+						prevFile, ok := builtFiles[file.Path]
+						if file.Path != "" && (!ok || bytes.Compare(prevFile.Contents, file.Contents) != 0) {
+							files = append(files, file.Path)
+							builtFiles[file.Path] = file
+						}
+					}
 					// send livereload message to connected clients
-					liveReload.Reload()
+					fmt.Println(files)
+					liveReload.Reload(files)
 				}
 			},
 		}
-		serv.BuildIndex(pkg)
+		serv.BuildIndex(pkg, builtFiles)
 	}()
 
 	// start our own Server

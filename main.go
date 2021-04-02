@@ -113,7 +113,7 @@ func main() {
 		if serv.Serve == true {
 			serv.ServeIndex(pkgJSON)
 		} else {
-			serv.BuildIndex(pkgJSON)
+			serv.BuildIndex(pkgJSON, make(map[string]api.OutputFile))
 		}
 	}
 }
