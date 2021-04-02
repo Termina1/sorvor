@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -31,18 +32,18 @@ type Sorvor struct {
 }
 
 // BuildEntry builds a given entrypoint using esbuild
-func (serv *Sorvor) BuildEntry(entry string) (string, api.BuildResult) {
+func (serv *Sorvor) BuildEntry(entry string) ([]string, api.BuildResult) {
 	serv.BuildOptions.EntryPoints = []string{entry}
-	serv.BuildOptions.Plugins = []api.Plugin{plugins.EnvPlugin}
+	serv.BuildOptions.Plugins = []api.Plugin{plugins.EnvPlugin, plugins.FolderResolutionPlugin}
 	result := api.Build(serv.BuildOptions)
-	var outfile string
+	outfiles := make([]string, len(result.OutputFiles))
 	for _, file := range result.OutputFiles {
 		if filepath.Ext(file.Path) != "map" {
 			cwd, _ := os.Getwd()
-			outfile = strings.TrimPrefix(file.Path, filepath.Join(cwd, serv.BuildOptions.Outdir))
+			outfiles = append(outfiles, strings.TrimPrefix(file.Path, filepath.Join(cwd, serv.BuildOptions.Outdir)))
 		}
 	}
-	return outfile, result
+	return outfiles, result
 }
 
 // RunEntry builds an entrypoint and launches the resulting built file using node.js
@@ -66,8 +67,8 @@ func (serv *Sorvor) RunEntry(entry string) {
 	}
 	// start esbuild in watch mode
 	serv.BuildOptions.Watch = &api.WatchMode{OnRebuild: onRebuild}
-	outfile, result = serv.BuildEntry(entry)
-	outfile = filepath.Join(serv.BuildOptions.Outdir, outfile)
+	outfiles, result := serv.BuildEntry(entry)
+	outfile = filepath.Join(serv.BuildOptions.Outdir, outfiles[0])
 	onRebuild(result)
 	wg.Wait()
 }
@@ -85,20 +86,33 @@ func (serv *Sorvor) BuildIndex(pkg *pkgjson.PkgJSON) []string {
 
 	tmpl, err := template.New("index.html").Funcs(template.FuncMap{
 		"livereload": func() template.HTML {
-			if serv.Serve == true {
+			if serv.Serve {
 				return template.HTML(livereload.JsSnippet)
 			}
 			return ""
 		},
-		"esbuild": func(entry string) string {
-			if serv.Serve == true {
+		"esbuild": func(entry string, withTag bool) template.HTML {
+			if serv.Serve {
 				entry = filepath.Join(filepath.Dir(serv.Entry), entry)
 				entries = append(entries, entry)
 			} else {
 				entry = filepath.Join(filepath.Dir(serv.Entry), entry)
 			}
-			outfile, _ := serv.BuildEntry(entry)
-			return outfile
+			outfiles, _ := serv.BuildEntry(entry)
+			if withTag {
+				result := ""
+				for _, file := range outfiles {
+					switch path.Ext(file) {
+					case ".js":
+						result += "<script src=\"" + file + "\"></script>"
+					case ".css":
+						result += "<link rel=\"stylesheet\" href=\"" + file + "\">"
+					}
+				}
+				return template.HTML(result)
+			} else {
+				return template.HTML(outfiles[0])
+			}
 		},
 		"copy": func(asset string) string {
 			dest := filepath.Join(serv.BuildOptions.Outdir, asset)
