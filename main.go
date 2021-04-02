@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Termina1/sorvor/pkg/logger"
+	"github.com/Termina1/sorvor/pkg/pkgjson"
+	"github.com/Termina1/sorvor/pkg/sorvor"
 	"github.com/evanw/esbuild/pkg/api"
 	"github.com/evanw/esbuild/pkg/cli"
-	"github.com/osdevisnot/sorvor/pkg/logger"
-	"github.com/osdevisnot/sorvor/pkg/pkgjson"
-	"github.com/osdevisnot/sorvor/pkg/sorvor"
 )
 
 var version = "development"

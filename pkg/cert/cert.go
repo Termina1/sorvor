@@ -14,7 +14,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/osdevisnot/sorvor/pkg/logger"
+	"github.com/Termina1/sorvor/pkg/logger"
 )
 
 // GenerateKeyPair generated self signed key and cert

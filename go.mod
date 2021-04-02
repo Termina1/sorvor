@@ -1,4 +1,4 @@
-module github.com/osdevisnot/sorvor
+module github.com/Termina1/sorvor
 
 go 1.15
 

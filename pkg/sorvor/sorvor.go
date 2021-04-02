@@ -13,12 +13,12 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/Termina1/sorvor/pkg/cert"
+	"github.com/Termina1/sorvor/pkg/livereload"
+	"github.com/Termina1/sorvor/pkg/logger"
+	"github.com/Termina1/sorvor/pkg/pkgjson"
+	"github.com/Termina1/sorvor/pkg/sorvor/plugins"
 	"github.com/evanw/esbuild/pkg/api"
-	"github.com/osdevisnot/sorvor/pkg/cert"
-	"github.com/osdevisnot/sorvor/pkg/livereload"
-	"github.com/osdevisnot/sorvor/pkg/logger"
-	"github.com/osdevisnot/sorvor/pkg/pkgjson"
-	"github.com/osdevisnot/sorvor/pkg/sorvor/plugins"
 )
 
 // Sorvor struct
@@ -104,7 +104,7 @@ func (serv *Sorvor) BuildIndex(pkg *pkgjson.PkgJSON) []string {
 				for _, file := range outfiles {
 					switch path.Ext(file) {
 					case ".js":
-						result += "<script src=\"" + file + "\"></script>"
+						result += "<script src=\"" + file + "\"><script>"
 					case ".css":
 						result += "<link rel=\"stylesheet\" href=\"" + file + "\">"
 					}

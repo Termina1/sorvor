@@ -5,8 +5,8 @@ import (
 	"log"
 	"strings"
 
+	"github.com/Termina1/sorvor/pkg/color"
 	"github.com/evanw/esbuild/pkg/api"
-	"github.com/osdevisnot/sorvor/pkg/color"
 )
 
 var Level api.LogLevel
