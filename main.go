@@ -21,7 +21,7 @@ func readOptions(pkgJSON *pkgjson.PkgJSON) *sorvor.Sorvor {
 	var esbuildArgs []string
 
 	osArgs := os.Args[1:]
-	serv := &sorvor.Sorvor{}
+	serv := &sorvor.Sorvor{Pkg: pkgJSON}
 	hasOutDir := false
 	hasLogLevel := false
 

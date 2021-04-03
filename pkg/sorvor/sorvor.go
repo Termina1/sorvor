@@ -7,6 +7,8 @@ import (
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
@@ -31,6 +33,7 @@ type Sorvor struct {
 	Port         string
 	Serve        bool
 	Secure       bool
+	Pkg          *pkgjson.PkgJSON
 }
 
 type BuildCache map[string]api.OutputFile
@@ -209,8 +212,14 @@ func (serv *Sorvor) ServeHTTP(res http.ResponseWriter, request *http.Request) {
 	root := filepath.Join(serv.BuildOptions.Outdir, filepath.Clean(request.URL.Path))
 
 	if stat, err := os.Stat(root); err != nil || stat.IsDir() {
-		// Serve a root index when root is not found or when root is a directory
-		http.ServeFile(res, request, filepath.Join(serv.BuildOptions.Outdir, "index.html"))
+		if os.IsNotExist(err) {
+			url, _ := url.Parse(serv.Pkg.Proxy)
+			proxy := httputil.NewSingleHostReverseProxy(url)
+			proxy.ServeHTTP(res, request)
+		} else {
+			// Serve a root index when root is not found or when root is a directory
+			http.ServeFile(res, request, filepath.Join(serv.BuildOptions.Outdir, "index.html"))
+		}
 		return
 	}
 

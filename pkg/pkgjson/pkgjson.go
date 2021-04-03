@@ -10,6 +10,7 @@ type PkgJSON struct {
 	Version          string            `json:"version"`
 	Author           string            `json:"author"`
 	Description      string            `json:"description"`
+	Proxy            string            `json:"proxy"`
 	Dependencies     map[string]string `json:"dependencies"`
 	PeerDependencies map[string]string `json:"peerDependencies"`
 	DevDependencies  map[string]string `json:"devDependencies"`
