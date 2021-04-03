@@ -17,6 +17,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/NYTimes/gziphandler"
 	"github.com/Termina1/sorvor/pkg/cert"
 	"github.com/Termina1/sorvor/pkg/livereload"
 	"github.com/Termina1/sorvor/pkg/logger"
@@ -186,7 +187,8 @@ func (serv *Sorvor) ServeIndex(pkg *pkgjson.PkgJSON) {
 	// start our own Server
 	go func() {
 		http.Handle("/livereload", liveReload)
-		http.Handle("/", serv)
+		handler := gziphandler.GzipHandler(serv)
+		http.Handle("/", handler)
 
 		if serv.Secure {
 			// generate self signed certs
